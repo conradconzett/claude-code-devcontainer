@@ -11,8 +11,13 @@
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "runArgs": [
+    "--runtime=sysbox-runc",
     "--cap-add=NET_ADMIN",
-    "--cap-add=NET_RAW"
+    "--cap-add=NET_RAW",
+    "--memory=6g",
+    "--memory-swap=8g",
+    "--cpus=3",
+    "--pids-limit=4096"
   ],
   "init": true,
   "updateRemoteUserUID": true,
@@ -43,6 +48,7 @@
     "source=devc-${localWorkspaceFolderBasename}-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=devc-${localWorkspaceFolderBasename}-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
     "source=devc-${localWorkspaceFolderBasename}-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
+    "source=devc-${localWorkspaceFolderBasename}-docker-${devcontainerId},target=/var/lib/docker,type=volume",
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
     "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
     "source=${localWorkspaceFolder}/.git/config,target=/workspace/.git/config,type=bind,readonly",
@@ -70,5 +76,6 @@
   "initializeCommand": "test -f \"$HOME/.gitconfig\" || touch \"$HOME/.gitconfig\"",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
-  "postCreateCommand": "uv run --no-project /opt/post_install.py"
+  "postCreateCommand": "uv run --no-project /opt/post_install.py",
+  "postStartCommand": "/usr/local/bin/start-dockerd"
 }

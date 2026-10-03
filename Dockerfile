@@ -54,6 +54,30 @@ RUN ARCH=$(dpkg --print-architecture) && \
   esac && \
   curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-${FZF_ARCH}.tar.gz" | tar -xz -C /usr/local/bin
 
+# Install Docker Engine (client + daemon) from Docker's official apt repo.
+#
+# This gives the container its OWN Docker daemon (Docker-in-Docker). It is only
+# safe because the container is expected to run under the Sysbox runtime
+# (--runtime=sysbox-runc), which puts the container in a dedicated user
+# namespace: root inside the container maps to an unprivileged user on the host,
+# and the inner daemon/its containers cannot reach the host's Docker or files.
+# Do NOT run this image under the default runc runtime with a bind-mounted host
+# Docker socket -- that would hand Claude (running --dangerously-skip-permissions)
+# effective root on the host. See setup.md.
+RUN install -m 0755 -d /etc/apt/keyrings && \
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+  chmod a+r /etc/apt/keyrings/docker.asc && \
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+    > /etc/apt/sources.list.d/docker.list && \
+  apt-get update && apt-get install -y --no-install-recommends \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io \
+    docker-buildx-plugin \
+    docker-compose-plugin \
+  && apt-get clean && rm -rf /var/lib/apt/lists/* && \
+  usermod -aG docker vscode
+
 # Create directories and set ownership (combined for fewer layers)
 RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /opt && \
   touch /commandhistory/.bash_history && \
@@ -67,6 +91,12 @@ ENV EDITOR=nano
 ENV VISUAL=nano
 
 WORKDIR /workspace
+
+# Helper that starts the in-container Docker daemon on demand (called from
+# postStartCommand). Kept as a script so it can wait for readiness instead of
+# racing the first `docker` call.
+COPY start-dockerd.sh /usr/local/bin/start-dockerd
+RUN chmod 0755 /usr/local/bin/start-dockerd
 
 # Switch to non-root user for remaining setup
 USER vscode

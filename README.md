@@ -2,6 +2,11 @@
 
 A containerized development environment for running Claude Code with `bypassPermissions` enabled. Built at [Trail of Bits](https://www.trailofbits.com/) for security audit workflows.
 
+> **Running on a remote server, and need Claude to run Docker commands too?** See
+> [`setup.md`](setup.md) for a headless Hetzner + Tailscale deployment that gives
+> the container its own Docker daemon via the [Sysbox](https://github.com/nestybox/sysbox)
+> runtime — safe Docker-in-Docker without exposing the host's Docker socket.
+
 ## Why Use This?
 
 Running Claude with `bypassPermissions` on your host machine is risky—it can execute any command without confirmation. This devcontainer provides **filesystem isolation**, so unrestricted Claude reaches only your project directory and a disposable container, not the rest of your host.

@@ -150,6 +150,7 @@ extract_mounts_to_file() {
         (contains("target=/commandhistory,") | not) and
         (contains("target=/home/vscode/.claude,") | not) and
         (contains("target=/home/vscode/.config/gh,") | not) and
+        (contains("target=/var/lib/docker,") | not) and
         (contains("target=/home/vscode/.gitconfig,") | not) and
         (contains("target=/workspace/.devcontainer,") | not)
       )
@@ -237,6 +238,7 @@ cmd_template() {
   cp "$SCRIPT_DIR/Dockerfile" "$devcontainer_dir/"
   cp "$SCRIPT_DIR/devcontainer.json" "$devcontainer_dir/"
   cp "$SCRIPT_DIR/post_install.py" "$devcontainer_dir/"
+  cp "$SCRIPT_DIR/start-dockerd.sh" "$devcontainer_dir/"
   cp "$SCRIPT_DIR/.zshrc" "$devcontainer_dir/"
 
   # Restore preserved mounts

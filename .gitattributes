@@ -1,0 +1,7 @@
+# Shell/Python scripts run on Linux inside the container. Force LF so a CRLF
+# shebang (e.g. after editing on Windows) never breaks them on the server.
+*.sh    text eol=lf
+*.py    text eol=lf
+*.zshrc text eol=lf
+.zshrc  text eol=lf
+Dockerfile text eol=lf
