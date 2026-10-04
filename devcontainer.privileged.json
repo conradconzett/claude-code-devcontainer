@@ -1,0 +1,95 @@
+// LOCAL-ONLY privileged variant of devcontainer.json.
+//
+// Use this ONLY on a host that cannot provide the Sysbox runtime -- e.g. Docker
+// Desktop on Windows/macOS -- so you can run Docker-in-Docker while testing.
+// It swaps `--runtime=sysbox-runc` for `--privileged`, which lets the inner
+// dockerd start without Sysbox.
+//
+// SECURITY: `--privileged` gives the container (and therefore Claude running
+// with bypassPermissions) effective root on the Docker engine's Linux VM, and
+// it CAN remount the read-only `.devcontainer`/`.git` mounts read-write. Your
+// host filesystem is still only exposed through the /workspace bind mount, but
+// the Sysbox isolation guarantees do NOT apply here. Only use this for your own
+// trusted code on a local machine. On a real Linux host, use the Sysbox default
+// (devcontainer.json) instead -- see setup.md.
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+  "name": "Claude Code Sandbox (privileged, local-only)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "TZ": "${localEnv:TZ:UTC}"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "runArgs": [
+    "--privileged",
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW",
+    "--memory=6g",
+    "--memory-swap=8g",
+    "--cpus=3",
+    "--pids-limit=4096"
+  ],
+  "init": true,
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        },
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "files.trimFinalNewlines": true
+      }
+    }
+  },
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=devc-${localWorkspaceFolderBasename}-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=devc-${localWorkspaceFolderBasename}-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+    "source=devc-${localWorkspaceFolderBasename}-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
+    "source=devc-${localWorkspaceFolderBasename}-docker-${devcontainerId},target=/var/lib/docker,type=volume",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.git/config,target=/workspace/.git/config,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.git/hooks,target=/workspace/.git/hooks,type=bind,readonly"
+  ],
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "GIT_CONFIG_GLOBAL": "/home/vscode/.gitconfig.local",
+    "UV_LINK_MODE": "copy",
+    "NPM_CONFIG_IGNORE_SCRIPTS": "true",
+    "NPM_CONFIG_AUDIT": "true",
+    "NPM_CONFIG_FUND": "false",
+    "NPM_CONFIG_SAVE_EXACT": "true",
+    "NPM_CONFIG_UPDATE_NOTIFIER": "false",
+    "NPM_CONFIG_MIN_RELEASE_AGE": "1",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PIP_DISABLE_PIP_VERSION_CHECK": "1"
+  },
+  "remoteEnv": {
+    "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN:}",
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY:}"
+  },
+  "initializeCommand": "test -f \"$HOME/.gitconfig\" || touch \"$HOME/.gitconfig\"",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "uv run --no-project /opt/post_install.py",
+  "postStartCommand": "/usr/local/bin/start-dockerd"
+}
